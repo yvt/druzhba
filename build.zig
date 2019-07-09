@@ -7,6 +7,11 @@ pub fn build(b: *Builder) void {
     exe.setBuildMode(mode);
     exe.addPackagePath("druzhba", "druzhba.zig");
 
+    const tests = b.addTest("druzhba.zig");
+
+    const test_step = b.step("test", "Run unit tests");
+    test_step.dependOn(&tests.step);
+
     const run_cmd = exe.run();
 
     const run_step = b.step("run", "Run the example app");
