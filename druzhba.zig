@@ -1,4 +1,4 @@
-const druzhba = @import("src/druzhba.zig");
+const druzhba = @import("druzhba/druzhba.zig");
 
 pub const defineSig = druzhba.defineSig;
 pub const defineClass = druzhba.defineClass;
