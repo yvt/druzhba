@@ -5,7 +5,7 @@ pub fn build(b: *Builder) void {
 
     const exe = b.addExecutable("druzhba", "examples/basic.zig");
     exe.setBuildMode(mode);
-    exe.addPackagePath("druzhba", "src/druzhba.zig");
+    exe.addPackagePath("druzhba", "druzhba.zig");
 
     const run_cmd = exe.run();
 
