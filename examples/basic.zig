@@ -100,5 +100,5 @@ const system = comptime System.link(&system_state);
 
 pub fn main() anyerror!void {
     system.init();
-    _ = system.invoke("main");
+    system.invoke("main");
 }
