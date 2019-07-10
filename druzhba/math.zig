@@ -20,3 +20,23 @@ test "roundUpAlign rounds up numbers" {
     testing.expectEqual(usize(4), roundUpAlign(4, 4));
     testing.expectEqual(usize(8), roundUpAlign(5, 4));
 }
+
+// To be used by tests
+pub const Xorshift32 = struct {
+    state: u32,
+
+    const Self = @This();
+
+    pub fn init(seed: u32) Self {
+        return Self {
+            .state = seed,
+        };
+    }
+
+    pub fn next(self: *Self) u32 {
+        self.state ^= self.state << 13;
+        self.state ^= self.state >> 17;
+        self.state ^= self.state << 5;
+        return self.state;
+    }
+};

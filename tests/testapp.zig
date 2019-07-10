@@ -31,6 +31,7 @@ const Entrypoint = druzhba.defineSig(struct {
 }.___);
 
 const App = druzhba.defineClass()
+    .state(u8) // dummy
     .out("answer", GetU32)
     .in("main", Entrypoint, struct {
         fn ___(comptime Self: type) type {

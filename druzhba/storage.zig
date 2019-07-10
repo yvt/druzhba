@@ -20,20 +20,28 @@ pub fn AlignedStorage(comptime size: usize, comptime alignment: u29) type {
 
     const Aligner = MaybeAligner.?;
 
-    // Compiler bug: Defining this using `union` causes `unable to evaluate
-    //               constant expression for some reason
-    const Ty = extern struct {
+    // Compiler bug: Defining this using `union` (of `[_]u8` and `Aligner`)
+    //               causes `unable to evaluate constant expression` for some
+    //               reason.
+    // Compiler bug: Defining `storage` as `[_]Aligner` and then doing
+    //               `@sliceToBytes(storage)` causes assertion failure.
+    //               <https://github.com/ziglang/zig/issues/2861>
+    const Ty = struct {
         aligner: Aligner,
-        storage: [if (size < @sizeOf(Aligner)) 0 else size - @sizeOf(Aligner)]u8,
+        storage: [size]u8,
 
         const Self = @This();
 
-        pub fn toBytes(self: *Self) [*]align(alignment) u8 {
+        pub fn toBytes(self: *Self) []align(alignment) u8 {
+            if (size == 0) {
+                return &[0]u8{};
+            }
             // Compiler bug: Ref-based slice (`ConstPtrSpecialRef`) is always
             //               treated as having 1 element, irregardless of
-            //               reinterpretation. Because of this, returning
-            //               `[]align(alignment) u8` causes various problems.
-            return @ptrCast([*]align(alignment) u8, self);
+            //               reinterpretation. Because of this, the returned
+            //               pointer has to refer to an array, not `Ty` as a
+            //               whole.
+            return @alignCast(alignment, self.storage[0 ..]);
             // return @ptrCast([*]align(alignment) u8, self)[0..size];
         }
     };
@@ -50,14 +58,34 @@ const known_types = [_]type{
 };
 
 test "AlignedStorage" {
-    @setEvalBranchQuota(10000);
+    @setEvalBranchQuota(1000000);
+
+    const Xorshift32 = @import("math.zig").Xorshift32;
 
     comptime var size = 0;
-    inline while (size < 100) {
+    inline while (size < 40) {
         comptime var a = 1;
         inline while (a <= 8) {
             testing.expect(@sizeOf(AlignedStorage(size, a)) >= size);
             testing.expect(@alignOf(AlignedStorage(size, a)) >= a);
+
+            var storage: AlignedStorage(size, a) = undefined;
+            var rng = Xorshift32.init(10000);
+            for (storage.toBytes()) |*byte| {
+                byte.* = @truncate(u8, rng.next());
+            }
+
+            comptime var storage2: AlignedStorage(size, a) = undefined;
+            comptime {
+                var rng2 = Xorshift32.init(10000);
+                for (storage2.toBytes()) |*byte| {
+                    byte.* = @truncate(u8, rng2.next());
+                }
+            }
+
+            var storage2_var = storage2;
+
+            testing.expectEqualSlices(u8, storage2_var.toBytes(), storage.toBytes());
 
             a *= 2;
         }

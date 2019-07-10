@@ -308,7 +308,7 @@ pub fn Compose(comptime desc: fn (*ComposeCtx) void) type {
     const StateTy = AlignedStorage(state_layout.size, state_layout.alignment);
 
     return struct {
-        state: [*]align(state_layout.alignment) u8,
+        state: []align(state_layout.alignment) u8,
 
         const Self = @This();
 
