@@ -69,7 +69,9 @@ pub fn defineClass() ClassBuilder {
 
 /// The builder type used to define a cell class.
 const ClassBuilder = struct {
-    _state: type = void,
+    // Compiler bug: Changing this to `void` causes assertion failure.
+    //               The root cause is not identified yet.
+    _state: type = u8,
     _attr: type = void,
     built: bool = false,
     in_ports: []const InPortInfo = empty(InPortInfo),
