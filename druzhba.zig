@@ -7,6 +7,8 @@ pub const InPort = druzhba.InPort;
 pub const OutPort = druzhba.OutPort;
 pub const ComposeCtx = druzhba.ComposeCtx;
 pub const Compose = druzhba.Compose;
+pub const VtableFactory = druzhba.VtableFactory;
+pub const ImplFactory = druzhba.ImplFactory;
 
 test "unit tests" {
     _ = @import("druzhba/comptimeutils.zig");

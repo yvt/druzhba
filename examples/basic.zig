@@ -30,8 +30,14 @@ const Counter = druzhba.defineClass()
     .in("count", Count, struct {
         fn ___(comptime Self: type) type {
             return struct {
+                // This is one of the two ways to provide an implementation.
+                // Less handy, but good for metaprogramming.
+                pub fn __vtable__() Count.Vtable(Self) {
+                    return Count.Vtable(Self) { .next = next };
+                }
+
                 /// The implementation of the `next` method.
-                pub fn next(self: Self) u32 {
+                fn next(self: Self) u32 {
                     const state: *u32 = self.state();
                     state.* -= 1;
                     return state.*;

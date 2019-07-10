@@ -55,6 +55,15 @@ pub fn defineSig(comptime Factory: VtableFactory) Sig {
 
 const Sig = struct {
     VtableFactory: VtableFactory,
+
+    const Self = @This();
+
+    /// Make a vtable type for the specified receiver type.
+    ///
+    /// This is a user-facing API.
+    pub fn Vtable(comptime self: Self, comptime VtSelf: type) type {
+        return self.VtableFactory(VtSelf);
+    }
 };
 
 const Method = struct {
@@ -163,11 +172,25 @@ const Class = struct {
 /// (They can be automatically generated from a prototype that doesn't
 /// have a receiver parameter once <https://github.com/ziglang/zig/issues/383>
 /// lands.)
-const VtableFactory = fn (type) type;
+pub const VtableFactory = fn (type) type;
 
-/// A function that produces a type containing the declarations of the handler
-/// functions of a signature. The given type is used as their receiver type.
-const ImplFactory = fn (type) type;
+/// A function that produces a type containing the handler functions of a
+/// signature. The parameter type `VtSelf` is used as their receiver type.
+///
+/// The handler functions are provided by the type in one of the following ways:
+///
+///  - Function declarations with corresponding method names. The functions must
+///    accept `self: VtSelf` as the first parameter.
+///
+///  - A single function declaration named `__vtable__`, having type
+///    `fn () sig.Vtable(VtSelf)`, where `sig` represents a signature and is
+///    a value of type `Sig`. The return value is a raw vtable and must be
+///    `comptime`-known.
+///
+/// The second usage is an advanced feature intended to be used for
+/// metaprogramming. For example, it can be used to automatically generate
+/// an implementation from a signature.
+pub const ImplFactory = fn (type) type;
 
 const InPortInfo = struct {
     name: []const u8,
@@ -456,6 +479,16 @@ fn makeVtable(comptime class: Class, comptime in_port_id: usize, comptime Self: 
     var vtable: Vtable = undefined;
 
     const Impl = class.in_ports[in_port_id].ImplFactory(Self);
+
+    if (@hasDecl(Impl, "__vtable__")) {
+        // Raw vtable mode - see `ImplFactory`'s documentation.'
+        const vt = Impl.__vtable__();
+        if (@typeOf(vt) != Vtable) {
+            @compileError("`__vtable__()` returned a value of type " ++
+                @typeName(@typeOf(vt)) ++ ", which is not a valid vtable type");
+        }
+        return vt;
+    }
 
     comptime var i = 0;
     inline while (i < @memberCount(Vtable)) {
