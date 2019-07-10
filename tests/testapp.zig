@@ -10,12 +10,14 @@ const GetU32 = druzhba.defineSig(struct {
 }.___);
 
 const DeepThought = druzhba.defineClass()
+    .attr(u32)
+    .attrDefault(42)
     .state(u32) // dummy
     .in("answer", GetU32, struct {
         fn ___(comptime Self: type) type {
             return struct {
                 pub fn get(self: Self) u32 {
-                    return 42;
+                    return self.attr().*;
                 }
             };
         }

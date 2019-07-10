@@ -80,12 +80,13 @@ pub fn defineClass() ClassBuilder {
 const ClassBuilder = struct {
     // Compiler bug: Changing this to `void` causes assertion failure.
     //               The root cause is not identified yet.
-    _state: type = u8,
-    _attr: type = void,
+    _StateTy: type = u8,
+    _AttrTy: type = void,
     built: bool = false,
     in_ports: []const InPortInfo = empty(InPortInfo),
     out_ports: []const OutPortInfo = empty(OutPortInfo),
     _ctor: fn (var) void = defaultCtor,
+    _AttrInit: ValueFactory = MakeValueFactory({}),
 
     const Self = @This();
 
@@ -93,12 +94,17 @@ const ClassBuilder = struct {
 
     /// Set the state type of the class. It defaults to `void`.
     pub fn state(comptime self: Self, comptime ty: type) Self {
-        return setField(self, "_state", ty);
+        return setField(self, "_StateTy", ty);
     }
 
     /// Set the attribute type of the class. It defaults to `void`.
     pub fn attr(comptime self: Self, comptime ty: type) Self {
-        return setField(self, "_attr", ty);
+        return setField(self, "_AttrTy", ty);
+    }
+
+    /// Set the default value of the attribute. It defaults to `{}`.
+    pub fn attrDefault(comptime self: Self, comptime value: var) Self {
+        return setField(self, "_AttrInit", MakeValueFactory(value));
     }
 
     /// Set the constructor function of the class.
@@ -129,12 +135,13 @@ const ClassBuilder = struct {
     /// Finalize the `ClassBuilder`.
     pub fn build(comptime self: Self) Class {
         return Class{
-            .StateTy = self._state,
-            .AttrTy = self._attr,
+            .StateTy = self._StateTy,
+            .AttrTy = self._AttrTy,
             .built = self.built,
             .in_ports = self.in_ports,
             .out_ports = self.out_ports,
             .ctor = self._ctor,
+            .DefaultAttrInit = self._AttrInit,
         };
     }
 };
@@ -146,6 +153,7 @@ const Class = struct {
     in_ports: []const InPortInfo,
     out_ports: []const OutPortInfo,
     ctor: fn (var) void,
+    DefaultAttrInit: ValueFactory,
 
     const Self = @This();
 
@@ -203,6 +211,24 @@ const OutPortInfo = struct {
     sig: Sig,
 };
 
+// Value producer
+// --------------------------------------------------------------------------
+
+/// A type-erased constant value producer.
+const ValueFactory = type;
+
+fn MakeValueFactory(value: var) ValueFactory {
+    return struct {
+        fn get(comptime T: type) T {
+            if (@typeOf(value) == void and T != void) {
+                @compileError("An attribute value of type " ++ @typeName(T) ++
+                    " is required, but missing.");
+            }
+            return value;
+        }
+    };
+}
+
 // Defining a system
 // --------------------------------------------------------------------------
 
@@ -240,15 +266,10 @@ pub const Cell = struct {
     }
 
     /// Set the attribute value of the cell.
-    pub fn withAttr(comptime self: Self, value: var) Self {
+    pub fn withAttr(comptime self: Self, value: self.getInner().class.AttrTy) Self {
         const inner = self.getInner();
-        const value_coerced: inner.class.AttrTy = comptime value;
 
-        inner.AttrInit = struct {
-            fn call(out_value: *inner.class.AttrTy) void {
-                out_value.* = value;
-            }
-        };
+        inner.AttrInit = MakeValueFactory(value);
 
         return self;
     }
@@ -275,12 +296,8 @@ pub const OutPort = struct {
 const ComposeCtxCell = struct {
     class: Class,
 
-    /// The initializer for the cell's attribute. The value can be calculated
-    /// by `AttrInit.call()`. It can't be stored directly as a field because
-    /// its type depends on `class.AttrTy`.
-    AttrInit: type = struct {
-        fn call(out: var) void {}
-    },
+    /// The initializer for the cell's attribute.
+    AttrInit: ValueFactory,
 };
 
 const ComposeCtxConn = struct {
@@ -301,6 +318,7 @@ pub const ComposeCtx = struct {
 
         var cell = ComposeCtxCell{
             .class = class,
+            .AttrInit = class.DefaultAttrInit,
         };
         self.cells = append(self.cells, &cell);
 
@@ -421,8 +439,7 @@ pub fn Compose(comptime desc: fn (*ComposeCtx) void) type {
             var st: CellStaticOfCell(cell_id) = undefined;
             const cell = ctx.cells[cell_id];
 
-            cell.AttrInit.call(&st._attr);
-
+            st._attr = cell.AttrInit.get(@typeOf(st._attr));
             st._state = self.cellState(cell_id);
 
             inline for (cell.class.out_ports) |*out_port, out_port_id| {
