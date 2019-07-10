@@ -10,15 +10,15 @@ An experimental statically-composed toy component framework written in [Zig].
 const druzhba = @import("druzhba");
 
 const Counter = @import("components.zig").Counter;
-const composeApp = @import("components.zig").composeApp;
+const addApp = @import("components.zig").addApp;
 
-fn composeSystem(comptime ctx: *druzhba.ComposeCtx) void {
+fn addSystem(comptime ctx: *druzhba.ComposeCtx) void {
     // Instantiate a cell (the smallest unit of encapsulation and message passing)
     const counter = ctx.new(Counter).withAttr(100);
     const counter_in_count = counter.in("count");
 
     // Instantiate a subsystem
-    const app = composeApp(ctx);
+    const app = addApp(ctx);
 
     // Wire things up
     ctx.connect(app.out_count, counter_in_count);
@@ -26,7 +26,7 @@ fn composeSystem(comptime ctx: *druzhba.ComposeCtx) void {
 }
 
 // Realize the system
-const System = druzhba.Compose(composeSystem);
+const System = druzhba.Compose(addSystem);
 var system_state: System.State() = undefined;       // → RAM
 const system = comptime System.link(&system_state); // → ROM
 
@@ -65,6 +65,18 @@ Statically-composed component frameworks are designed to address this problem. C
 [Zig]: https://ziglang.org
 
 I did not choose Rust for this project because it would not be interesting. Rust is much limited on regard to metaprogramming. Macros in Rust are just macros after all and do not have access to the information outside the locations where they are used. A build script could be used to generate code, but it lacks novelty as it is no different from what existing solutions do. Furthermore, whichever way I choose, I would have to implement its own module resolution system when the language already has one.
+
+## Style guide
+
+### Naming convention (preliminary)
+
+- `PascalCase` for signatures (constructed by `druzhba.defineSig(struct { ... })`, having type `druzhba.Sig`)
+    - `Sig != type`, so this is different from [the standard naming convention](https://ziglang.org/documentation/master/).
+- `PascalCase` for classes (constructed by `druzhba.defineClass().build()`, having type `druzhba.Class`)
+    - Ditto.
+- `addPascalCase` for subsystems (functions receiving `comptime ctx: *druzhba.ComposeCtx`)
+
+This does not apply to the internal implementation of this library.
 
 ## License
 

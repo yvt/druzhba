@@ -94,14 +94,14 @@ const App = druzhba.defineClass()
     }.___)
     .build();
 
-/// The inbound/outbound ports exposed by the subsystem `composeApp`.
+/// The inbound/outbound ports exposed by the subsystem `addApp`.
 const AppIo = struct {
     in_main: druzhba.InPort,
     out_count: druzhba.OutPort,
 };
 
 /// This demonstrates how to define a subsystem.
-fn composeApp(comptime ctx: *druzhba.ComposeCtx) AppIo {
+fn addApp(comptime ctx: *druzhba.ComposeCtx) AppIo {
     const app = ctx.new(App);
     return AppIo {
         .in_main = app.in("main"),
@@ -111,19 +111,19 @@ fn composeApp(comptime ctx: *druzhba.ComposeCtx) AppIo {
 
 /// The compose function, where classes are instantiated and connections are
 /// defined.
-fn composeSystem(comptime ctx: *druzhba.ComposeCtx) void {
+fn addSystem(comptime ctx: *druzhba.ComposeCtx) void {
     // Instantiate a `Counter` cell.
     const counter = ctx.new(Counter).withAttr(100);
 
     // Instantiate the `App` subsystem.
-    const app = composeApp(ctx);
+    const app = addApp(ctx);
 
     // Wire things up
     ctx.connect(app.out_count, counter.in("count"));
     ctx.entry(app.in_main);
 }
 
-const System = druzhba.Compose(composeSystem);
+const System = druzhba.Compose(addSystem);
 var system_state: System.State() = undefined;       // → RAM
 const system = comptime System.link(&system_state); // → ROM
 

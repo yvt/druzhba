@@ -47,14 +47,14 @@ const App = druzhba.defineClass()
     }.___)
     .build();
 
-fn composeSystem(comptime ctx: *druzhba.ComposeCtx) void {
+fn addSystem(comptime ctx: *druzhba.ComposeCtx) void {
     const deepThought = ctx.new(DeepThought);
     const app = ctx.new(App);
     ctx.connect(app.out("answer"), deepThought.in("answer"));
     ctx.entry(app.in("main"));
 }
 
-const System = druzhba.Compose(composeSystem);
+const System = druzhba.Compose(addSystem);
 var system_state: System.State() = undefined;
 const system = comptime System.link(&system_state);
 
