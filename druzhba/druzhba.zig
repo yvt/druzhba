@@ -245,7 +245,7 @@ pub const Cell = struct {
 
         for (class.in_ports) |in_port, i| {
             if (mem.eql(u8, in_port.name, name)) {
-                return InPort{ .cell_id = self.cell_id, .in_port_id = i };
+                return InPort{ .cell_id = self.cell_id, .in_port_id = i, ._sig = in_port.sig };
             }
         }
 
@@ -258,7 +258,7 @@ pub const Cell = struct {
 
         for (class.out_ports) |out_port, i| {
             if (mem.eql(u8, out_port.name, name)) {
-                return OutPort{ .cell_id = self.cell_id, .out_port_id = i };
+                return OutPort{ .cell_id = self.cell_id, .out_port_id = i, ._sig = out_port.sig };
             }
         }
 
@@ -284,6 +284,12 @@ pub const Cell = struct {
 pub const InPort = struct {
     cell_id: usize,
     in_port_id: usize,
+    _sig: Sig,
+
+    /// Get the signature of the port.
+    pub fn PortSig(comptime self: @This()) Sig {
+        return self._sig;
+    }
 };
 
 /// Represents a reference to an outbound port of a cell defined in
@@ -291,6 +297,12 @@ pub const InPort = struct {
 pub const OutPort = struct {
     cell_id: usize,
     out_port_id: usize,
+    _sig: Sig,
+
+    /// Get the signature of the port.
+    pub fn PortSig(comptime self: @This()) Sig {
+        return self._sig;
+    }
 };
 
 const ComposeCtxCell = struct {
