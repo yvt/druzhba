@@ -120,7 +120,12 @@ fn addSystem(comptime ctx: *druzhba.ComposeCtx) void {
 
     // Wire things up
     ctx.connect(app.out_count, counter.in("count"));
-    ctx.entry(app.in_main);
+    // Try replacing the last line with this:
+    // ctx.connect(app.out_count, druzhba.wrapTrace(ctx, counter.in("count"), "counter"));
+
+    // Use a trace component to log method calls
+    const in_main = druzhba.wrapTrace(ctx, app.in_main, "main");
+    ctx.entry(in_main);
 }
 
 const System = druzhba.Compose(addSystem);

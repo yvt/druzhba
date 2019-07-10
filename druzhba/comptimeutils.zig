@@ -88,3 +88,27 @@ test "map does its job" {
         testing.expectEqualSlices(u8, &[_]u8{ 2, 3, 4 }, &array2);
     }
 }
+
+pub fn intToStr(comptime i: var) []const u8 {
+    comptime {
+        if (i < 0) {
+            @compileError("negative numbers are not supported (yet)");
+        } else if (i == 0) {
+            return "0";
+        } else {
+            var str: []const u8 = "";
+            var ii = i;
+            while (ii > 0) {
+                str = [1]u8{'0' + ii % 10} ++ str;
+                ii /= 10;
+            }
+            return str;
+        }
+    }
+}
+
+test "intToStr does its job" {
+    testing.expectEqualSlices(u8, &"0", intToStr(0));
+    testing.expectEqualSlices(u8, &"4", intToStr(4));
+    testing.expectEqualSlices(u8, &"42", intToStr(42));
+}

@@ -4,7 +4,7 @@ const druzhba = @import("druzhba");
 const GetU32 = druzhba.defineSig(struct {
     fn ___(comptime Self: type) type {
         return struct {
-            pub get: fn (Self) u32,
+            pub get: fn (Self, u32) u32,
         };
     }
 }.___);
@@ -16,7 +16,7 @@ const DeepThought = druzhba.defineClass()
     .in("answer", GetU32, struct {
         fn ___(comptime Self: type) type {
             return struct {
-                pub fn get(self: Self) u32 {
+                pub fn get(self: Self, _: u32) u32 {
                     return self.attr().*;
                 }
             };
@@ -39,7 +39,7 @@ const App = druzhba.defineClass()
         fn ___(comptime Self: type) type {
             return struct {
                 pub fn main(self: Self) void {
-                    const answer = self.out("answer").invoke("get");
+                    const answer = self.out("answer").invoke("get", u32(114514));
                     testing.expectEqual(u32(42), answer);
                 }
             };
@@ -50,7 +50,8 @@ const App = druzhba.defineClass()
 fn addSystem(comptime ctx: *druzhba.ComposeCtx) void {
     const deepThought = ctx.new(DeepThought);
     const app = ctx.new(App);
-    ctx.connect(app.out("answer"), deepThought.in("answer"));
+    const port = druzhba.wrapTrace(ctx, deepThought.in("answer"), "seek answer");
+    ctx.connect(app.out("answer"), port);
     ctx.entry(app.in("main"));
 }
 
