@@ -14,7 +14,3 @@ test "unit tests" {
     _ = @import("druzhba/math.zig");
     _ = @import("druzhba/storage.zig");
 }
-
-test "integration tests" {
-    _ = @import("tests/tests.zig");
-}

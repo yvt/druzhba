@@ -1,4 +1,5 @@
 const assert = @import("std").debug.assert;
+const testing = @import("std").testing;
 
 /// Create a type representing a raw memory storage with the specified size and
 /// alignment requirement.
@@ -48,6 +49,22 @@ const known_types = [_]type{
     u8, u16, u32, u64,
 };
 
+test "AlignedStorage" {
+    @setEvalBranchQuota(10000);
+
+    comptime var size = 0;
+    inline while (size < 100) {
+        comptime var a = 1;
+        inline while (a <= 8) {
+            testing.expect(@sizeOf(AlignedStorage(size, a)) >= size);
+            testing.expect(@alignOf(AlignedStorage(size, a)) >= a);
+
+            a *= 2;
+        }
+        size += 1;
+    }
+}
+
 /// Create a tuple type (heterogeneous fixed-size list type).
 pub fn Tuple(comptime types: []const type) type {
     return if (types.len == 0) TupleEmpty else TupleNonEmpty(types);
@@ -76,7 +93,7 @@ fn TupleNonEmpty(comptime types: []const type) type {
 
         const Self = @This();
         const Head = types[0];
-        const Rest = Tuple(types[1 ..]);
+        const Rest = Tuple(types[1..]);
 
         pub fn Elem(comptime i: usize) type {
             return if (i == 0) Head else Rest.Elem(i - 1);
@@ -90,4 +107,40 @@ fn TupleNonEmpty(comptime types: []const type) type {
             return if (i == 0) &self.head else self.rest.getConst(i - 1);
         }
     };
+}
+
+test "Tuple with zero elements" {
+    const T = Tuple([_]type{});
+    testing.expect(@sizeOf(T) == 0);
+}
+
+test "Tuple with one element" {
+    const T = Tuple([_]type{u32});
+    testing.expect(@sizeOf(T) == @sizeOf(u32));
+    testing.expect(T.Elem(0) == u32);
+
+    var t: T = undefined;
+    t.get(0).* = 42;
+    testing.expect(@typeOf(t.get(0)) == *u32);
+    testing.expect(t.get(0).* == 42);
+    testing.expect(@typeOf(t.getConst(0)) == *const u32);
+    testing.expect(t.getConst(0).* == 42);
+}
+
+test "Tuple with two elements" {
+    const T = Tuple([_]type{ u32, u16 });
+    testing.expect(T.Elem(0) == u32);
+    testing.expect(T.Elem(1) == u16);
+
+    var t: T = undefined;
+    t.get(0).* = 114514;
+    t.get(1).* = 42;
+    testing.expect(@typeOf(t.get(0)) == *u32);
+    testing.expect(@typeOf(t.get(1)) == *u16);
+    testing.expect(t.get(0).* == 114514);
+    testing.expect(t.get(1).* == 42);
+    testing.expect(@typeOf(t.getConst(0)) == *const u32);
+    testing.expect(@typeOf(t.getConst(1)) == *const u16);
+    testing.expect(t.getConst(0).* == 114514);
+    testing.expect(t.getConst(1).* == 42);
 }

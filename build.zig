@@ -8,9 +8,15 @@ pub fn build(b: *Builder) void {
     exe.addPackagePath("druzhba", "druzhba.zig");
 
     const tests = b.addTest("druzhba.zig");
+    const test_stateless = b.addTest("tests/stateless.zig");
+    test_stateless.addPackagePath("druzhba", "druzhba.zig");
+    const test_testapp = b.addTest("tests/testapp.zig");
+    test_testapp.addPackagePath("druzhba", "druzhba.zig");
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&tests.step);
+    test_step.dependOn(&test_stateless.step);
+    test_step.dependOn(&test_testapp.step);
 
     const run_cmd = exe.run();
 
