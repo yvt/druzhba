@@ -53,7 +53,7 @@ pub fn defineSig(comptime Factory: VtableFactory) Sig {
     };
 }
 
-const Sig = struct {
+pub const Sig = struct {
     VtableFactory: VtableFactory,
 
     const Self = @This();
@@ -146,7 +146,7 @@ const ClassBuilder = struct {
     }
 };
 
-const Class = struct {
+pub const Class = struct {
     StateTy: type,
     AttrTy: type,
     built: bool,
