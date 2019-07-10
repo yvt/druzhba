@@ -378,7 +378,7 @@ pub fn Compose(comptime desc: fn (*ComposeCtx) void) type {
         fn cellState(self: *const Self, comptime cell_id: usize) *CellStateOfCell(cell_id) {
             const off = comptime state_layout.cell_offs[cell_id];
             const T = CellStateOfCell(cell_id);
-            if (T == void) {
+            if (@sizeOf(T) == 0) {
                 return undefined;
             } else {
                 const bytes = &self.state[off];
